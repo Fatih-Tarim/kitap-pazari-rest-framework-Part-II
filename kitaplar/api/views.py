@@ -4,7 +4,9 @@ from rest_framework.mixins import ListModelMixin, CreateModelMixin
 from rest_framework import generics
 from rest_framework.generics import get_object_or_404
 from rest_framework import permissions
+from rest_framework.exceptions import ValidationError
 from kitaplar.api.permissions import IsAdminUserOrReadOnly
+
 
 from kitaplar.api.serializers import KitapSerializers, YorumSerializers
 from kitaplar.models import Kitap, Yorum
@@ -17,7 +19,7 @@ class KitapListCreateApiView(generics.ListCreateAPIView):
     serializer_class = KitapSerializers
     permission_classes = [IsAdminUserOrReadOnly]
 
-class KitapDetailAPIView(generics.RetrieveAPIView):
+class KitapDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = Kitap.objects.all()
     serializer_class = KitapSerializers
@@ -26,15 +28,21 @@ class KitapDetailAPIView(generics.RetrieveAPIView):
 class YorumCreateAPIView(generics.CreateAPIView, ListModelMixin):
     queryset = Yorum.objects.all()
     serializer_class = YorumSerializers
-    permission_classes = [IsAdminUserOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
         # path('kitaplar/<int:kitap_pk>/yorum_yap/', api_views.YorumCreateAPIView.as_view(), name='kitap-yorumla'),
         kitap_pk = self.kwargs.get('kitap_pk')
         kitap = get_object_or_404(Kitap, pk=kitap_pk)
-        serializer.save(kitap=kitap)
+        kullanici = self.request.user
+        yorumlar = Yorum.objects.filter(kitap=kitap, yorum_sahibi=kullanici)
 
-class YorumDetailAPIView(generics.RetrieveDestroyAPIView):
+        if yorumlar.exists():
+            raise ValidationError("Bir kitaba sadece bir yorum yapılır!")
+
+        serializer.save(kitap=kitap, yorum_sahibi=kullanici)
+
+class YorumDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Yorum.objects.all()
     serializer_class = YorumSerializers
     permission_classes = [permissions.IsAuthenticated]
