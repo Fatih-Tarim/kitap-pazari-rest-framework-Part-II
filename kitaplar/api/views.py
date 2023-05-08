@@ -5,7 +5,7 @@ from rest_framework import generics
 from rest_framework.generics import get_object_or_404
 from rest_framework import permissions
 from rest_framework.exceptions import ValidationError
-from kitaplar.api.permissions import IsAdminUserOrReadOnly
+from kitaplar.api.permissions import IsAdminUserOrReadOnly, IsYorumSahibiOrReadOnly
 
 
 from kitaplar.api.serializers import KitapSerializers, YorumSerializers
@@ -45,7 +45,7 @@ class YorumCreateAPIView(generics.CreateAPIView, ListModelMixin):
 class YorumDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Yorum.objects.all()
     serializer_class = YorumSerializers
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsYorumSahibiOrReadOnly]
 
     
 
